@@ -2,11 +2,11 @@
 
 namespace App\Applications\Queries\Api;
 
-use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Applications\Helpers\PortalDateHelper;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\LatestNews;
 use Illuminate\Support\Facades\Cache;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 
 class LatestNewsQuery
 {
@@ -16,23 +16,26 @@ class LatestNewsQuery
 
         return Cache::remember(CacheKey::siteLatestNews($today), now()->addMinutes(3), function () use ($offset, $limit) {
             $news = LatestNews::query()
-                ->whereHas('news', fn ($news) => $news
-                    ->where('published', true)
-                    ->whereBetween('date', [
-                        PortalDateHelper::todayStart(),
-                        PortalDateHelper::todayEnd(),
-                    ]))
-                ->with('news.category.parentRecursive')
+                ->select(['latest_news.id', 'latest_news.news_id', 'latest_news.position'])
                 ->join('news', 'latest_news.news_id', '=', 'news.id')
+                ->with([
+                    'news' => fn ($q) => $q->select(NewsListResource::NEWS_COLUMNS),
+                    'news.category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'news.category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                ])
+                ->where('news.published', true)
+                ->whereBetween('news.date', [
+                    PortalDateHelper::todayStart(),
+                    PortalDateHelper::todayEnd(),
+                ])
                 ->orderByDesc('news.date')
-                ->select('latest_news.*')
                 ->offset($offset)
                 ->limit($limit)
                 ->get()
                 ->pluck('news');
 
-            return NewsListResource::collection($news);
+            return NewsListResource::collection($news)->resolve();
         });
     }
-
 }

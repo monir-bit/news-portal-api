@@ -1,25 +1,32 @@
 <?php
 
 namespace App\Applications\Queries\Api;
-use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\MarqueNews;
 use App\Models\News;
 use Illuminate\Support\Facades\Cache;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 
 class MarqueNewsQuery
 {
-    public function handle() {
+    public function handle()
+    {
         return Cache::remember(CacheKey::marque(), now()->addMinutes(5), function () {
-            $marque_news_id = MarqueNews::pluck('news_id');
-            $news = News::whereIn('id', $marque_news_id)
-                ->orderByDesc('date')
+            $news = News::query()
+                ->select(NewsListResource::NEWS_COLUMNS)
+                ->whereIn('id', MarqueNews::query()->select('news_id'))
                 ->where('published', true)
-                ->with('category.parentRecursive')
+                ->with([
+                    'category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                ])
+                ->orderByDesc('date')
                 ->limit(10)
                 ->get();
-            return NewsListResource::collection($news);
+
+            return NewsListResource::collection($news)->resolve();
         });
     }
-
 }

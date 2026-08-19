@@ -17,7 +17,12 @@ class BreakingNewsQuery
         return Cache::remember(CacheKey::breakingNews(), now()->addMinutes(5), function () {
             $rows = BreakingNews::query()
                 ->where('published', true)
-                ->with(['news.category.parentRecursive.parent'])
+                ->with([
+                    'news' => fn ($q) => $q->select(['id', 'category_id', 'slug_key']),
+                    'news.category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'news.category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                    'news.category.parentRecursive.parent' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                ])
                 ->orderBy('position')
                 ->orderBy('id')
                 ->get();

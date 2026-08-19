@@ -10,32 +10,6 @@ use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 
 class LayoutSectionWiseNewsQuery
 {
-    /**
-     * Columns required by NewsListResource (and its "date" fallback to created_at).
-     *
-     * @var array<int, string>
-     */
-    private const NEWS_COLUMNS = [
-        'id', 'category_id', 'slug_key', 'title', 'ticker', 'image', 'image_caption',
-        'shoulder', 'sort_description', 'live_news', 'is_thread', 'is_visible_shoulder',
-        'is_visible_ticker', 'date', 'created_at', 'representative',
-    ];
-
-    /**
-     * Columns required by CategoryListResource / CategoryPathService for every
-     * level of the category -> parentRecursive -> parentRecursive chain.
-     *
-     * @var array<int, string>
-     */
-    private const CATEGORY_COLUMNS = ['id', 'name', 'slug', 'parent_id'];
-
-    /**
-     * Columns required by NewsListResource's whenLoaded('liveNews', ...) check.
-     *
-     * @var array<int, string>
-     */
-    private const LIVE_NEWS_COLUMNS = ['id', 'news_id', 'is_active'];
-
     public function handle(string $section_slug, $limit = null)
     {
         return Cache::flexible(CacheKey::homeSectionWiseNews($section_slug), [300, 900], function () use ($section_slug, $limit) {
@@ -112,11 +86,11 @@ class LayoutSectionWiseNewsQuery
     private function newsEagerLoads(): array
     {
         return [
-            'news' => fn ($q) => $q->select(self::NEWS_COLUMNS),
-            'news.liveNews' => fn ($q) => $q->select(self::LIVE_NEWS_COLUMNS),
-            'news.category' => fn ($q) => $q->select(self::CATEGORY_COLUMNS),
-            'news.category.parentRecursive' => fn ($q) => $q->select(self::CATEGORY_COLUMNS),
-            'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(self::CATEGORY_COLUMNS),
+            'news' => fn ($q) => $q->select(NewsListResource::NEWS_COLUMNS),
+            'news.liveNews' => fn ($q) => $q->select(NewsListResource::LIVE_NEWS_COLUMNS),
+            'news.category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+            'news.category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+            'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
         ];
     }
 }
