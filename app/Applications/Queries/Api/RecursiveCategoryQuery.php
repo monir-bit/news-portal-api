@@ -2,7 +2,7 @@
 
 namespace App\Applications\Queries\Api;
 
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Models\Category;
 use Illuminate\Support\Facades\Cache;
 

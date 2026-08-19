@@ -2,16 +2,9 @@
 
 namespace App\Observers;
 
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Applications\Helpers\UtilsHelper;
-use App\Jobs\SitemapJob;
-use App\Jobs\SyncNewsJob;
 use App\Models\News;
-use App\Services\LiveNewsService;
-use App\Services\NewsLatestService;
-use App\Services\NewsMarqueeService;
-use App\Services\SpecialSegmentNewsService;
-use App\Services\SpecialTagNewsService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -45,8 +38,6 @@ class NewsObserver
      */
     public function created(News $news): void
     {
-        SyncNewsJob::dispatch($news->id, 'created')->afterCommit();
-
         if ($news->published) {
             $this->dispatchSitemapJob([$this->newsDate($news)]);
         }
@@ -59,7 +50,6 @@ class NewsObserver
      */
     public function updated(News $news): void
     {
-        SyncNewsJob::dispatch($news->id, 'updated')->afterCommit();
         Cache::forget(CacheKey::newsDetails($news->slug_key));
 
         if ($this->shouldRefreshSitemap($news)) {
@@ -76,11 +66,6 @@ class NewsObserver
      */
     public function deleting(News $news): void
     {
-        app(NewsLatestService::class)->remove($news);
-        app(NewsMarqueeService::class)->remove($news);
-        app(LiveNewsService::class)->remove($news);
-        app(SpecialSegmentNewsService::class)->remove($news);
-        app(SpecialTagNewsService::class)->remove($news);
         Cache::forget(CacheKey::newsDetails($news->slug_key));
 
         if ($news->published) {
@@ -107,8 +92,6 @@ class NewsObserver
         if ($dates === []) {
             return;
         }
-
-        SitemapJob::dispatch($dates)->afterCommit();
     }
 
     /**

@@ -2,10 +2,10 @@
 
 namespace App\Applications\Queries\Api;
 
-use App\Applications\Cache\CacheKey;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\BreakingNews;
 use Illuminate\Support\Facades\Cache;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 
 class BreakingNewsQuery
 {

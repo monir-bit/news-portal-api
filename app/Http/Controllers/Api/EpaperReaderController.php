@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\EpaperPublicationRowResource;
 use App\Http\Resources\Api\EpaperReaderShowResource;

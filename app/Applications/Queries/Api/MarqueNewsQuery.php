@@ -1,8 +1,7 @@
 <?php
 
 namespace App\Applications\Queries\Api;
-
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\MarqueNews;
 use App\Models\News;

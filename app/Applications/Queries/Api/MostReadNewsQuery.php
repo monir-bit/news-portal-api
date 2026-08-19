@@ -2,7 +2,7 @@
 
 namespace App\Applications\Queries\Api;
 
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Applications\Helpers\PortalDateHelper;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\News;

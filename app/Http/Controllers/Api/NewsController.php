@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Applications\Cache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Applications\Helpers\SeoHelper;
 use App\Applications\Queries\Api\CategoryAllChildrenIdsQuery;
 use App\Applications\Queries\Api\CategoryLayoutWiseNewsQuery;
