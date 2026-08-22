@@ -34,11 +34,14 @@ class LatestNews extends Model
                 'news.category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
                 'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
             ])
+            ->whereNull('news.deleted_at')
             ->where('news.published', true)
             ->whereBetween('news.date', [PortalDateHelper::todayStart(), PortalDateHelper::todayEnd()])
             ->orderByDesc('news.date')
             ->limit($limit)
             ->get()
-            ->pluck('news');
+            ->pluck('news')
+            ->filter()
+            ->values();
     }
 }

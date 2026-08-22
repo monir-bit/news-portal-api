@@ -65,11 +65,13 @@ class HomeController extends Controller
                     'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
                 ])
                 ->where('layout_section_news.layout_section_id', $sectionId)
+                ->whereNull('news.deleted_at')
                 ->where('news.published', true)
                 ->when($livePinnedFirst, fn ($q) => $q->orderByDesc('news.live_news'))
                 ->orderBy('layout_section_news.position')
                 ->when($limit, fn ($q) => $q->limit($limit))
                 ->get()
+                ->filter(fn ($item) => $item->news !== null)
                 ->map(fn ($item) => ['position' => $item->position, 'news' => NewsListResource::make($item->news)])
                 ->values()
                 ->all();
@@ -101,11 +103,13 @@ class HomeController extends Controller
                         'news.category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
                     ])
                     ->where('special_segment_news.special_segment_id', $segment->id)
+                    ->whereNull('news.deleted_at')
                     ->where('news.published', true)
                     ->orderBy('special_segment_news.position')
                     ->limit($limit)
                     ->get()
                     ->pluck('news')
+                    ->filter()
                 : collect();
 
             return [
