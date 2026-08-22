@@ -45,7 +45,7 @@ class HomeController extends Controller
      *
      * @return array<int, array{position: int, news: NewsListResource}>
      */
-    private function sectionNews(string $sectionSlug, ?int $limit = null, bool $livePinnedFirst = false): array
+    private function sectionNews(string $sectionSlug, ?int $limit = null, bool $livePinnedFirst = false)
     {
         return Cache::flexible(CacheKey::homeSectionWiseNews($sectionSlug), [300, 900], function () use ($sectionSlug, $limit, $livePinnedFirst) {
             $sectionId = LayoutSection::where('slug', $sectionSlug)->value('id');
