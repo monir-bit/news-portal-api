@@ -11,10 +11,11 @@ use App\Models\LayoutSectionNews;
 use App\Models\News;
 use App\Models\Tag;
 use App\Models\WorldCupMatch;
+use App\Models\WorldCupQuizSet;
 use App\Services\News\CategoryAllChildrenIdsQuery;
 use App\Services\News\CategoryNewsPageService;
+use App\Services\News\CategoryPageLayoutWiseNewsQuery;
 use App\Services\News\LatestNewsQuery;
-use App\Services\News\LayoutSectionWiseNewsQuery;
 use App\Services\News\LinkedNewsQuery;
 use App\Services\News\MostReadNewsByCategoryQuery;
 use App\Services\News\MostReadNewsQuery;
@@ -225,13 +226,16 @@ class NewsController extends Controller
     }
 
     /**
-     * Sports hub: curated cricket/football rails plus the remaining sports news feed.
+     * Sports hub: same response shape as the admin project's endpoint of the
+     * same name - curated "lead"/"selected" rails, cricket/football feeds,
+     * and the remaining sports news.
      *
      * @return array<string, mixed>|AnonymousResourceCollection
      */
     public function newsByCategorySports(
         Request $request,
         CategoryAllChildrenIdsQuery $categoryAllChildrenIdsQuery,
+        CategoryPageLayoutWiseNewsQuery $categoryPageLayoutWiseNewsQuery,
         LatestNewsQuery $latestNewsQuery,
         MostReadNewsQuery $mostReadNewsAllQuery,
         MostReadNewsByCategoryQuery $mostReadNewsQuery,
@@ -239,7 +243,7 @@ class NewsController extends Controller
     ): array|AnonymousResourceCollection {
         $slug = 'sports';
 
-        $category = Category::with('children')
+        $category = Category::with(['children', 'parent.children'])
             ->where('slug', $slug)
             ->where('visible', true)
             ->firstOrFail();
@@ -269,6 +273,7 @@ class NewsController extends Controller
                 $cricketCategory,
                 $excludedCategoryIds,
                 $categoryAllChildrenIdsQuery,
+                $categoryPageLayoutWiseNewsQuery,
                 $latestNewsQuery,
                 $mostReadNewsAllQuery,
                 $mostReadNewsQuery,
@@ -283,11 +288,16 @@ class NewsController extends Controller
 
                 $others = $this->sportsOthersNewsQuery($category, $excludedCategoryIds)->cursorPaginate(12);
 
+                $childrenCategories = $category->parent ? $category->parent->children : $category->children;
+                $parentCategory = $category->parent ?? $category;
+
                 return [
                     'category' => CategoryListResource::make($category)->resolve(),
-                    'parent' => CategoryListResource::make($category)->resolve(),
-                    'children' => CategoryListResource::collection($category->children)->resolve(),
+                    'parent' => CategoryListResource::make($parentCategory)->resolve(),
+                    'children' => CategoryListResource::collection($childrenCategories)->resolve(),
                     'news_list' => [
+                        'lead' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'lead', 6),
+                        'selected' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'selected', 15),
                         'cricket' => NewsListResource::collection($cricketNews)->resolve(),
                         'football' => NewsListResource::collection($footballNews)->resolve(),
                         'others' => [
@@ -304,7 +314,7 @@ class NewsController extends Controller
                     ],
                     'latest_news' => $latestNewsQuery->handle(),
                     'most_read_news_all' => $mostReadNewsAllQuery->handle(),
-                    'most_read_news' => $mostReadNewsQuery->handle($category->id),
+                    'most_read_news' => $mostReadNewsQuery->handle($category->id, 5),
                 ];
             },
             300,
@@ -312,52 +322,45 @@ class NewsController extends Controller
     }
 
     /**
-     * World Cup landing page: category news feed, the curated "world-cup-lead"
-     * layout section, and the live/upcoming match schedule.
+     * World Cup landing page: same response shape as the admin project's
+     * endpoint of the same name - curated layout sections, the live/upcoming
+     * match schedule, and the active quiz set slug.
      *
-     * @return array<string, mixed>|AnonymousResourceCollection
+     * @return array<string, mixed>
      */
     public function newsByCategoryWorldCup(
-        Request $request,
-        CategoryNewsPageService $categoryNewsPageService,
-        LayoutSectionWiseNewsQuery $layoutSectionWiseNewsQuery,
-        MostReadNewsByCategoryQuery $mostReadNewsQuery,
+        CategoryPageLayoutWiseNewsQuery $categoryPageLayoutWiseNewsQuery,
         SharedCache $sharedCache,
-    ): array|AnonymousResourceCollection {
+    ): array {
         $slug = 'world-cup';
-
-        // Cursor pages are unique per request (unbounded key space) - only the
-        // default/first-page view (no cursor) is cache-eligible.
-        if ($request->input('cursor')) {
-            $categoryIds = $categoryNewsPageService->categoryIdsForSlug($slug);
-            $newsQuery = $categoryNewsPageService->baseNewsQuery($categoryIds);
-
-            [, $news] = $categoryNewsPageService->paginateAfterLeads($newsQuery);
-
-            return NewsListResource::collection($news);
-        }
 
         $listing = $sharedCache->remember(
             CacheKey::make('news-by-category-world-cup'),
             [CacheTags::categoryBySlug($slug)],
-            function () use ($slug, $categoryNewsPageService, $layoutSectionWiseNewsQuery, $mostReadNewsQuery) {
-                $category = $categoryNewsPageService->resolveVisibleCategory($slug);
-                $categoryIds = $categoryNewsPageService->categoryIdsForSlug($slug);
-                $newsQuery = $categoryNewsPageService->baseNewsQuery($categoryIds);
-
-                [$leadNews, $news] = $categoryNewsPageService->paginateAfterLeads($newsQuery);
+            function () use ($slug, $categoryPageLayoutWiseNewsQuery) {
+                $category = Category::where('slug', $slug)->where('visible', true)->firstOrFail();
 
                 return [
-                    ...$categoryNewsPageService->buildFullListingPayload($category, $leadNews, $news, $mostReadNewsQuery),
-                    'world_cup_lead' => $layoutSectionWiseNewsQuery->handle('world-cup-lead', 10),
+                    'lead_news' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'lead-news', 10),
+                    'holud_jhor' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'holud-jhor', 8),
+                    'akashi_hawa' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'akashi-hawa', 8),
+                    'world_cup_analysis' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'world-cup-analysis', 1),
+                    'world_cup_history' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'world-cup-history', 1),
+                    'star_news' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'star-news', 1),
+                    'world_cup_thinking' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'world-cup-thinking', 1),
                 ];
             },
             300,
         );
 
-        // Match schedule/scores are live data - always fetched fresh, never cached,
-        // matching WorldCupController's existing (uncached) convention for matches.
+        // Match schedule/scores and the active quiz set are live/time-sensitive -
+        // always fetched fresh, never cached, matching WorldCupController's
+        // existing (uncached) convention for match data.
         $listing['matches'] = $this->worldCupUpcomingMatches();
+        $listing['quiz_set_slug'] = WorldCupQuizSet::where('is_active', true)
+            ->where('start_time', '<=', now())
+            ->where('end_time', '>=', now())
+            ->first()?->slug;
 
         return $listing;
     }
@@ -564,7 +567,9 @@ class NewsController extends Controller
                 'category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
                 'category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
             ])
-            ->orderByDesc('date')
+            // Matches the admin project's ordering for this endpoint (created_at,
+            // not the 'date' column other category listings order by).
+            ->orderByDesc('created_at')
             ->orderByDesc('id');
     }
 
@@ -581,6 +586,7 @@ class NewsController extends Controller
             ])
             ->orderBy('match_date')
             ->orderBy('start_time')
+            ->limit(5)
             ->get()
             ->makeHidden(['team_a', 'team_b', 'created_at', 'updated_at', 'season']);
     }
