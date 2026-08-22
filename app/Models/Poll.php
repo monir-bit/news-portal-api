@@ -19,12 +19,15 @@ class Poll extends Model
         'created_by',
     ];
 
-    protected $casts = [
-        'page' => PollPage::class,
-        'is_active' => 'boolean',
-        'starts_at' => 'datetime',
-        'ends_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'page' => PollPage::class,
+            'is_active' => 'boolean',
+            'starts_at' => 'datetime',
+            'ends_at' => 'datetime',
+        ];
+    }
 
     public function options(): HasMany
     {

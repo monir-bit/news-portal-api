@@ -11,7 +11,7 @@ class ApiCacheHeaders
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -20,7 +20,7 @@ class ApiCacheHeaders
         if (
             in_array($request->method(), ['GET', 'HEAD']) &&
             $request->is('api/*') &&
-            !$request->header('Authorization')
+            ! $request->header('Authorization')
         ) {
             $response->headers->set('Cache-Control', 'public, max-age=30');
         }

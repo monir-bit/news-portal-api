@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ThankNews extends Model
 {
+    protected $table = 'thank_news';
+
     protected $hidden = [
         'image_path',
     ];
@@ -18,9 +20,6 @@ class ThankNews extends Model
         'image',
     ];
 
-    /**
-     * @return BelongsTo<News, $this>
-     */
     public function news(): BelongsTo
     {
         return $this->belongsTo(News::class);
@@ -29,15 +28,5 @@ class ThankNews extends Model
     public function getImageAttribute(?string $value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
-    }
-
-    /**
-     * Raw stored path (`image` column). Use server-side for delete/upload; `image` accessor is the public URL.
-     */
-    public function getImagePathAttribute(): ?string
-    {
-        $path = $this->attributes['image'] ?? null;
-
-        return $path !== null && $path !== '' ? (string) $path : null;
     }
 }

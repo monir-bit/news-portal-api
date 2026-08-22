@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Applications\Enums\PageSeoPageName;
-use App\Applications\Helpers\UtilsHelper;
+use App\Enums\PageSeoPageName;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class PageSeo extends Model
@@ -20,12 +20,15 @@ class PageSeo extends Model
         'robots',
     ];
 
-    protected $casts = [
-        'page_name' => PageSeoPageName::class,
-        'keywords' => 'array',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'page_name' => PageSeoPageName::class,
+            'keywords' => 'array',
+        ];
+    }
 
-    public function getOgImageAttribute($value)
+    public function getOgImageAttribute($value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
     }

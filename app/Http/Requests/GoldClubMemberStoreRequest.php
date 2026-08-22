@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Support\ClubMember\ClubMemberImageValidation;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ class GoldClubMemberStoreRequest extends FormRequest
     }
 
     /**
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -29,6 +30,20 @@ class GoldClubMemberStoreRequest extends FormRequest
             'address' => ['required', 'string', 'max:5000'],
             'phone' => ['required', 'string', 'max:20', Rule::unique('gold_club_members', 'phone')],
             'email' => ['required', 'email', 'max:255', Rule::unique('gold_club_members', 'email')],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'email.unique' => 'এই ইমেইল ইতিমধ্যে নিবন্ধিত।',
+            'phone.unique' => 'এই ফোন নম্বর ইতিমধ্যে নিবন্ধিত।',
+            'image.image' => 'ছবি অবশ্যই একটি বৈধ ইমেজ ফাইল হতে হবে।',
+            'image.mimes' => 'ছবির ধরন হতে হবে: jpeg, jpg, png, gif, webp বা bmp।',
+            'image.max' => 'ছবির সাইজ সর্বোচ্চ ৫ MB হতে হবে।',
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MarqueNews extends Model
 {
@@ -11,10 +12,7 @@ class MarqueNews extends Model
         'position',
     ];
 
-    /**
-     * Get the news that owns the marquee news
-     */
-    public function news()
+    public function news(): BelongsTo
     {
         return $this->belongsTo(News::class);
     }

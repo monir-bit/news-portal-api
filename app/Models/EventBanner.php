@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Applications\Enums\EventBannerName;
-use App\Applications\Helpers\UtilsHelper;
+use App\Enums\EventBannerName;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class EventBanner extends Model
@@ -18,9 +18,6 @@ class EventBanner extends Model
         'is_active',
     ];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -39,19 +36,5 @@ class EventBanner extends Model
     public function getDesktopImageAttribute(?string $value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
-    }
-
-    public function getMobileImagePathAttribute(): ?string
-    {
-        $path = $this->attributes['mobile_image'] ?? null;
-
-        return $path !== null && $path !== '' ? (string) $path : null;
-    }
-
-    public function getDesktopImagePathAttribute(): ?string
-    {
-        $path = $this->attributes['desktop_image'] ?? null;
-
-        return $path !== null && $path !== '' ? (string) $path : null;
     }
 }

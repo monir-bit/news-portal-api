@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class SpecialSegment extends Model
 {
@@ -16,22 +18,19 @@ class SpecialSegment extends Model
         'is_active',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
-    /**
-     * Get the tag that belongs to the special segment
-     */
-    public function tag()
+    public function tag(): BelongsTo
     {
         return $this->belongsTo(Tag::class);
     }
 
-    /**
-     * Get all news in this special segment
-     */
-    public function news()
+    public function news(): BelongsToMany
     {
         return $this->belongsToMany(
             News::class,
@@ -41,11 +40,12 @@ class SpecialSegment extends Model
         )->withPivot('position')->withTimestamps();
     }
 
-    public function getDesktopBannerImageAttribute($value)
+    public function getDesktopBannerImageAttribute($value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
     }
-    public function getMobileBannerImageAttribute($value)
+
+    public function getMobileBannerImageAttribute($value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
     }

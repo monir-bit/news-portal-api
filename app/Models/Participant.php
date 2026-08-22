@@ -14,27 +14,25 @@ class Participant extends Model
         'date_of_birth',
     ];
 
-    protected $casts = [
-        'date_of_birth' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'date_of_birth' => 'date',
+        ];
+    }
 
     public function answers(): HasMany
     {
         return $this->hasMany(QuestionAnswer::class);
     }
 
-    public function epaperAnswers(): HasMany
+    public function worldCupQuestionParticipations(): HasMany
     {
-        return $this->hasMany(EpaperQuestionAnswer::class);
+        return $this->hasMany(WorldCupQuestionParticipation::class);
     }
 
     public function worldCupQuizParticipations(): HasMany
     {
         return $this->hasMany(WorldCupQuizParticipation::class);
-    }
-
-    public function worldCupQuestionParticipations(): HasMany
-    {
-        return $this->hasMany(WorldCupQuestionParticipation::class);
     }
 }

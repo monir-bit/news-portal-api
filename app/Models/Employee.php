@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
@@ -27,11 +27,14 @@ class Employee extends Model
 
     protected $appends = ['photo_url'];
 
-    protected $casts = [
-        'position' => 'integer',
-        'department_position' => 'integer',
-        'joining_date' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'position' => 'integer',
+            'department_position' => 'integer',
+            'joining_date' => 'date',
+        ];
+    }
 
     public function getPhotoUrlAttribute(): ?string
     {

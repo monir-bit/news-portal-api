@@ -3,17 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
-use Spatie\Permission\Traits\HasPermissions;
-use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles, HasPermissions;
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -24,10 +22,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_active',
-        'email_verified_at',
-        'joining_date',
-        'image',
     ];
 
     /**
@@ -37,8 +31,6 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
         'remember_token',
     ];
 
@@ -50,19 +42,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'id' => 'string',
             'email_verified_at' => 'datetime',
-            'is_active' => 'boolean',
             'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
         ];
-    }
-
-    /**
-     * Get the news created by this user
-     */
-    public function createdNews()
-    {
-        return $this->hasMany(News::class, 'created_by');
     }
 }

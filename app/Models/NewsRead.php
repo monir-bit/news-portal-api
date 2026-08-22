@@ -3,14 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NewsRead extends Model
 {
-    protected $casts = [
-        'read_date' => 'date:Y-m-d',
-        'read_count' => 'integer',
-    ];
-
     protected $fillable = [
         'news_id',
         'category_id',
@@ -19,12 +15,21 @@ class NewsRead extends Model
         'visitor_id',
     ];
 
-    public function category(){
+    protected function casts(): array
+    {
+        return [
+            'read_date' => 'date:Y-m-d',
+            'read_count' => 'integer',
+        ];
+    }
+
+    public function category(): BelongsTo
+    {
         return $this->belongsTo(Category::class);
     }
 
-    public function news(){
+    public function news(): BelongsTo
+    {
         return $this->belongsTo(News::class);
     }
-
 }

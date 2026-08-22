@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class PopoverAdd extends Model
@@ -26,9 +26,6 @@ class PopoverAdd extends Model
         'height',
     ];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [

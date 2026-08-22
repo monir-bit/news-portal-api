@@ -2,7 +2,7 @@
 
 namespace App\Models\Concerns;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 
 trait HasMemberImage
 {

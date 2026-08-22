@@ -15,10 +15,13 @@ class PollOption extends Model
         'votes_count',
     ];
 
-    protected $casts = [
-        'initial_votes' => 'integer',
-        'votes_count' => 'integer',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'initial_votes' => 'integer',
+            'votes_count' => 'integer',
+        ];
+    }
 
     public function poll(): BelongsTo
     {

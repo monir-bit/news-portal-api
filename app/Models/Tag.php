@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -21,16 +21,19 @@ class Tag extends Model
         'robots',
     ];
 
-    protected $casts = [
-        'keywords' => 'array',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'keywords' => 'array',
+        ];
+    }
 
-    public function getOgImageAttribute($value)
+    public function getOgImageAttribute($value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
     }
 
-    public function news()
+    public function news(): BelongsToMany
     {
         return $this->belongsToMany(
             News::class,
@@ -38,15 +41,5 @@ class Tag extends Model
             'tag_id',
             'news_id'
         );
-    }
-
-    public function newsTimelines(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            NewsTimeline::class,
-            'news_timeline_tag',
-            'tag_id',
-            'news_timeline_id'
-        )->withTimestamps();
     }
 }

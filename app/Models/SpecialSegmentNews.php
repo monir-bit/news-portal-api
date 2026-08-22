@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SpecialSegmentNews extends Model
 {
@@ -12,12 +13,12 @@ class SpecialSegmentNews extends Model
         'position',
     ];
 
-    public function specialSegment()
+    public function specialSegment(): BelongsTo
     {
         return $this->belongsTo(SpecialSegment::class);
     }
 
-    public function news()
+    public function news(): BelongsTo
     {
         return $this->belongsTo(News::class);
     }

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -21,13 +21,16 @@ class WorldCupQuestion extends Model
         'end_date_time',
     ];
 
-    protected $casts = [
-        'duration_seconds' => 'integer',
-        'sort_order' => 'integer',
-        'is_active' => 'boolean',
-        'start_date_time' => 'datetime',
-        'end_date_time' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'duration_seconds' => 'integer',
+            'sort_order' => 'integer',
+            'is_active' => 'boolean',
+            'start_date_time' => 'datetime',
+            'end_date_time' => 'datetime',
+        ];
+    }
 
     public function options(): HasMany
     {
@@ -47,13 +50,6 @@ class WorldCupQuestion extends Model
     public function getImageAttribute(?string $value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
-    }
-
-    public function getImagePathAttribute(): ?string
-    {
-        $path = $this->attributes['image'] ?? null;
-
-        return $path !== null && $path !== '' ? (string) $path : null;
     }
 
     public function isSubmittableNow(): bool

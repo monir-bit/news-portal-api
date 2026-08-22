@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use App\Applications\Helpers\UtilsHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Author extends Model
 {
@@ -19,21 +20,12 @@ class Author extends Model
         'image',
     ];
 
-    protected static function booted(): void
-    {
-        static::saving(function (Author $author) {
-            if ($author->english_name) {
-                $author->slug = \Illuminate\Support\Str::slug($author->english_name);
-            }
-        });
-    }
-
     public function getImageAttribute($value): ?string
     {
         return $value ? UtilsHelper::GetMediaUrl($value) : null;
     }
 
-    public function news()
+    public function news(): BelongsToMany
     {
         return $this->belongsToMany(
             News::class,

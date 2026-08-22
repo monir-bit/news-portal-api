@@ -4,17 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * Minimal, read-only slice needed to resolve `News::reporterNews.reporter`
+ * for the public API's `NewsDetailsResource.reporter` byline block.
+ */
 class ReporterNews extends Model
 {
-    protected $fillable = ['reporter_id', 'news_id', 'original_content', 'is_special', 'received_updated', 'received_edit', 'is_print_user'];
+    protected $table = 'reporter_news';
 
-    protected $casts = [
-        'is_special' => 'boolean',
-        'is_print_user' => 'boolean',
-    ];
+    protected $fillable = ['reporter_id', 'news_id'];
 
     public function reporter(): BelongsTo
     {
@@ -24,20 +23,5 @@ class ReporterNews extends Model
     public function news(): BelongsTo
     {
         return $this->belongsTo(News::class);
-    }
-
-    public function updates(): HasMany
-    {
-        return $this->hasMany(ReporterNewsUpdate::class);
-    }
-
-    public function newsEdits(): HasMany
-    {
-        return $this->hasMany(ReporterNewsEdit::class);
-    }
-
-    public function reporterPrintNews(): HasOne
-    {
-        return $this->hasOne(ReporterPrintNews::class);
     }
 }

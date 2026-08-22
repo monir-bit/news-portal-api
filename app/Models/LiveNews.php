@@ -9,10 +9,13 @@ class LiveNews extends Model
 {
     protected $fillable = ['news_id', 'position', 'title', 'content', 'is_active', 'stopped_at'];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-        'stopped_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'stopped_at' => 'datetime',
+        ];
+    }
 
     public function news(): BelongsTo
     {

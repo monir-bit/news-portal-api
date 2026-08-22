@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -59,7 +58,8 @@ class WorldCupMatch extends Model
         return $this->belongsTo(News::class, 'news_id');
     }
 
-    public function timeLines(){
+    public function timeLines(): HasMany
+    {
         return $this->hasMany(NewsTimeline::class, 'news_id', 'news_id');
     }
 
@@ -71,7 +71,7 @@ class WorldCupMatch extends Model
         return $query
             ->whereIn('status', ['scheduled', 'live'])
             ->whereRaw(
-                "(match_date + start_time) BETWEEN ? AND ?",
+                '(match_date + start_time) BETWEEN ? AND ?',
                 [$from, $to]
             )->limit(6);
     }

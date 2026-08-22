@@ -2,22 +2,20 @@
 
 namespace App\Models;
 
-use App\Applications\Enums\IsShowReporterEnum;
-use App\Applications\Helpers\PortalDateHelper;
-use App\Applications\Helpers\UtilsHelper;
-use App\Http\Resources\Api\NewsListResource;
-use App\Observers\NewsObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use App\Enums\IsShowReporterEnum;
+use App\Http\Resources\NewsListResource;
+use App\Support\PortalDateHelper;
+use App\Support\UtilsHelper;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Laravel\Scout\Searchable;
 
-#[ObservedBy(NewsObserver::class)]
 class News extends Model
 {
     use Searchable, SoftDeletes;
@@ -51,20 +49,26 @@ class News extends Model
         'working_by',
     ];
 
-    protected $casts = [
-        'published' => 'boolean',
-        'latest' => 'boolean',
-        'news_marquee' => 'boolean',
-        'live_news' => 'boolean',
-        'is_thread' => 'boolean',
-        'is_visible_shoulder' => 'boolean',
-        'is_visible_ticker' => 'boolean',
-        'is_show_reporter' => IsShowReporterEnum::class,
-        'is_working' => 'boolean',
-        'date' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'published' => 'boolean',
+            'latest' => 'boolean',
+            'news_marquee' => 'boolean',
+            'live_news' => 'boolean',
+            'is_thread' => 'boolean',
+            'is_visible_shoulder' => 'boolean',
+            'is_visible_ticker' => 'boolean',
+            'is_show_reporter' => IsShowReporterEnum::class,
+            'is_working' => 'boolean',
+            'date' => 'datetime',
+        ];
+    }
 
-    public function toSearchableArray()
+    /**
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
     {
         $this->loadMissing(['details', 'tags']);
 
@@ -76,7 +80,7 @@ class News extends Model
             'ticker' => $this->ticker,
             'sort_description' => $this->sort_description,
             'representative' => $this->representative,
-            'content' => strip_tags($this->details?->details),
+            'content' => strip_tags((string) $this->details?->details),
             'tags' => $this->tags->pluck('name')->implode(' '),
             'category' => $this->category?->name,
             'published' => $this->published,
@@ -84,61 +88,37 @@ class News extends Model
         ];
     }
 
-    /**
-     * Get the category that owns the news
-     */
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    /**
-     * Get the user who created the news
-     */
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function liveNews()
+    public function liveNews(): HasOne
     {
         return $this->hasOne(LiveNews::class);
     }
 
-    /**
-     * Get the user who last updated the news
-     */
-    public function updater()
-    {
-        return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    public function workingBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'working_by');
-    }
-
-    public function details()
+    public function details(): HasOne
     {
         return $this->hasOne(NewsDetails::class);
     }
 
-    public function tags()
+    public function tags(): BelongsToMany
     {
         return $this->belongsToMany(
             Tag::class,
-            'news_tag_mappings', // pivot table name
-            'news_id',           // foreign key on pivot for News
-            'tag_id'             // foreign key on pivot for Tag
+            'news_tag_mappings',
+            'news_id',
+            'tag_id'
         );
     }
 
-    public function latestNews()
+    public function latestNews(): HasOne
     {
         return $this->hasOne(LatestNews::class);
     }
 
-    public function marqueeNews()
+    public function marqueeNews(): HasOne
     {
         return $this->hasOne(MarqueNews::class);
     }
@@ -151,17 +131,12 @@ class News extends Model
         return $this->hasOne(ThankNews::class);
     }
 
-    public function timelineNews()
+    public function timelineNews(): HasMany
     {
         return $this->hasMany(NewsTimeline::class);
     }
 
-    public function correspondence()
-    {
-        return $this->hasOne(NewsCorrespondent::class);
-    }
-
-    public function getImageAttribute($value)
+    public function getImageAttribute($value): ?string
     {
         return UtilsHelper::GetMediaUrl($value);
     }
@@ -171,22 +146,7 @@ class News extends Model
         return $this->hasOne(LayoutSectionNews::class, 'news_id', 'id');
     }
 
-    public function categoryLayoutNews(): HasOne
-    {
-        return $this->hasOne(CategoryLayoutNews::class, 'news_id', 'id')->where('category_id', $this->category_id);
-    }
-
-    public function categoryPageLayoutNews(): HasMany
-    {
-        return $this->hasMany(CategoryPageLayoutNews::class, 'news_id', 'id');
-    }
-
-    public function newsReads(): HasMany
-    {
-        return $this->hasMany(NewsRead::class);
-    }
-
-    public function authors()
+    public function authors(): BelongsToMany
     {
         return $this->belongsToMany(
             Author::class,
@@ -196,49 +156,19 @@ class News extends Model
         );
     }
 
-    public function webStory()
+    public function webStory(): HasOne
     {
         return $this->hasOne(WebStory::class);
     }
 
-    public function specialTags()
-    {
-        return $this->belongsToMany(
-            SpecialTag::class,
-            'special_tag_news',
-            'news_id',
-            'special_tag_id'
-        )->withPivot('position');
-    }
-
-    public function reporters()
-    {
-        return $this->belongsToMany(
-            Reporter::class,
-            'reporter_news',
-            'news_id',
-            'reporter_id'
-        )->withTimestamps();
-    }
-
-    public function newsLocations()
+    public function newsLocations(): HasMany
     {
         return $this->hasMany(NewsLocation::class);
     }
 
-    public function reporterNewsMedia()
-    {
-        return $this->hasMany(ReporterNewsMedia::class);
-    }
-
-    public function reporterNews()
+    public function reporterNews(): HasMany
     {
         return $this->hasMany(ReporterNews::class);
-    }
-
-    public function activityHistory()
-    {
-        return $this->hasMany(NewsActivityHistory::class);
     }
 
     public function linkedNewsRows(): HasMany
@@ -264,6 +194,11 @@ class News extends Model
     /**
      * Most-read news in the last 24h, optionally scoped to a set of category ids.
      * Powers the site-wide and per-category "most read" rails.
+     *
+     * Resolve ids first via a lightweight query, then a second column-selected
+     * query with a 3-level category eager load, then re-sort in PHP to match
+     * the id order. This is the standard "most read / latest" query pattern
+     * used across the API — reuse it wherever a similar rail is built.
      *
      * @param  array<int, int>|null  $categoryIds
      */

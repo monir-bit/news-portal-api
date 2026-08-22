@@ -17,10 +17,13 @@ class WorldCupQuestionParticipation extends Model
         'user_agent',
     ];
 
-    protected $casts = [
-        'is_correct' => 'boolean',
-        'submitted_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'is_correct' => 'boolean',
+            'submitted_at' => 'datetime',
+        ];
+    }
 
     public function question(): BelongsTo
     {

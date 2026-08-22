@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'public'),
+    'default' => env('FILESYSTEM_DISK', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -41,7 +41,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL'), '/').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -60,49 +60,20 @@ return [
             'report' => false,
         ],
 
+        // S3-compatible disk for MinIO / Cloudflare R2 — whichever is behind
+        // the production media endpoint. Path-style is required for MinIO.
         'r2' => [
             'driver' => 's3',
             'key' => env('R2_ACCESS_KEY_ID'),
             'secret' => env('R2_SECRET_ACCESS_KEY'),
-            'region' => 'auto', // R2 তে রিজিওন auto থাকে
+            'region' => env('R2_REGION', 'auto'),
             'bucket' => env('R2_BUCKET'),
             'endpoint' => env('R2_ENDPOINT'),
-            'url' => env('R2_PUBLIC_URL'), // এটি নতুন যোগ করতে হবে (কাস্টম ডোমেইনের জন্য)
+            'url' => env('R2_PUBLIC_URL'),
             'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', false),
             'visibility' => 'public',
             'throw' => false,
-        ],
-
-        'gcs_s3' => [
-            'driver' => 's3',
-            'key' => env('GCS_ACCESS_KEY_ID'),
-            'secret' => env('GCS_SECRET_ACCESS_KEY'),
-            'region'   => env('GCS_REGION', 'auto'),
-            'bucket'   => env('GCS_BUCKET'),
-            'endpoint' => env('GCS_ENDPOINT', 'https://storage.googleapis.com'),
-            'root'     => env('GCS_ROOT', ''),          // optional path prefix
-            'use_path_style_endpoint' => true,
-            'signature_version'       => 'v4',
-
-            // aws-sdk-php >= 3.337 sends CRC32 checksum headers GCS rejects with 400
-            'request_checksum_calculation' => 'when_required',
-            'response_checksum_validation' => 'when_required',
-
-
-            'throw'   => true,
-            'report'  => false,
-
-        ],
-
-
-        'gcs' => [
-            'driver' => 'gcs',
-            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
-            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
-            'key_file_path' => env('GOOGLE_CLOUD_KEY_FILE'),
-            'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
-            'visibility' => env('GOOGLE_CLOUD_STORAGE_VISIBILITY', 'public'),
-            'throw' => false,
+            'report' => false,
         ],
 
     ],

@@ -15,10 +15,13 @@ class QuestionAnswer extends Model
         'answered_at',
     ];
 
-    protected $casts = [
-        'is_correct' => 'boolean',
-        'answered_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'is_correct' => 'boolean',
+            'answered_at' => 'datetime',
+        ];
+    }
 
     public function question(): BelongsTo
     {

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Category extends Model
@@ -16,36 +18,34 @@ class Category extends Model
         'parent_id',
     ];
 
-    protected $casts = [
-        'has_page' => 'boolean',
-    ];
-
-    /**
-     * Parent category (belongs to)
-     */
-    public function parent()
+    protected function casts(): array
     {
-        return $this->belongsTo(
-            self::class,
-            'parent_id'
-        );
+        return [
+            'has_page' => 'boolean',
+            'visible' => 'boolean',
+        ];
     }
 
     /**
-     * Direct children categories
+     * Parent category (belongs to).
      */
-    public function children()
+    public function parent(): BelongsTo
     {
-        return $this->hasMany(
-            self::class,
-            'parent_id'
-        )->orderBy('position');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     /**
-     * Recursive children (tree)
+     * Direct children categories.
      */
-    public function childrenRecursive()
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('position');
+    }
+
+    /**
+     * Recursive children (tree).
+     */
+    public function childrenRecursive(): HasMany
     {
         return $this->children()->with([
             'childrenRecursive',
@@ -53,14 +53,9 @@ class Category extends Model
         ]);
     }
 
-    public function parentRecursive()
+    public function parentRecursive(): BelongsTo
     {
         return $this->parent()->with('parentRecursive');
-    }
-
-    public function categoryPageLayouts()
-    {
-        return $this->hasMany(CategoryPageLayout::class, 'category_id', 'id')->orderBy('position');
     }
 
     public function categorySeo(): HasOne
@@ -68,12 +63,12 @@ class Category extends Model
         return $this->hasOne(CategorySeo::class);
     }
 
-    public function news()
+    public function news(): HasMany
     {
         return $this->hasMany(News::class);
     }
 
-    public function questions()
+    public function questions(): HasMany
     {
         return $this->hasMany(Question::class);
     }
@@ -92,22 +87,5 @@ class Category extends Model
         }
 
         return $ids;
-    }
-
-    /**
-     * This category's id plus every descendant id, resolved by slug.
-     * Used to scope a news listing to a category and all of its subcategories.
-     *
-     * @return array<int, int>
-     */
-    public static function idsForSlug(string $slug): array
-    {
-        $category = static::where('slug', $slug)->with('childrenRecursive')->first();
-
-        if (! $category) {
-            return [];
-        }
-
-        return [...$category->descendantIds(), $category->id];
     }
 }
