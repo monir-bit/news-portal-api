@@ -3,20 +3,24 @@
 namespace App\Models;
 
 use App\Applications\Enums\IsShowReporterEnum;
+use App\Applications\Helpers\PortalDateHelper;
 use App\Applications\Helpers\UtilsHelper;
+use App\Http\Resources\Api\NewsListResource;
 use App\Observers\NewsObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Laravel\Scout\Searchable;
 
 #[ObservedBy(NewsObserver::class)]
 class News extends Model
 {
-    use SoftDeletes, Searchable;
+    use Searchable, SoftDeletes;
 
     protected $fillable = [
         'shoulder',
@@ -60,10 +64,10 @@ class News extends Model
         'date' => 'datetime',
     ];
 
-
     public function toSearchableArray()
     {
         $this->loadMissing(['details', 'tags']);
+
         return [
             'id' => $this->id,
             'slug_key' => $this->slug_key,
@@ -250,5 +254,43 @@ class News extends Model
     public function newsSeo(): HasOne
     {
         return $this->hasOne(NewsSeo::class);
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('published', true);
+    }
+
+    /**
+     * Most-read news in the last 24h, optionally scoped to a set of category ids.
+     * Powers the site-wide and per-category "most read" rails.
+     *
+     * @param  array<int, int>|null  $categoryIds
+     */
+    public static function mostRead(?array $categoryIds = null, int $limit = 15): Collection
+    {
+        $mostReadIds = NewsRead::query()
+            ->select('news_id')
+            ->whereHas('news', fn (Builder $q) => $q->published()->whereBetween('date', [
+                PortalDateHelper::subDay(),
+                PortalDateHelper::now(),
+            ]))
+            ->when($categoryIds, fn (Builder $q) => $q->whereIn('category_id', $categoryIds))
+            ->groupBy('news_id')
+            ->orderByRaw('COUNT(*) DESC')
+            ->limit($limit)
+            ->pluck('news_id');
+
+        return static::query()
+            ->select(NewsListResource::NEWS_COLUMNS)
+            ->whereIn('id', $mostReadIds)
+            ->with([
+                'category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                'category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                'category.parentRecursive.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+            ])
+            ->get()
+            ->sortBy(fn (self $news) => $mostReadIds->search($news->id))
+            ->values();
     }
 }

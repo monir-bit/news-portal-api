@@ -49,7 +49,7 @@ class Category extends Model
     {
         return $this->children()->with([
             'childrenRecursive',
-            'parentRecursive'
+            'parentRecursive',
         ]);
     }
 
@@ -68,12 +68,46 @@ class Category extends Model
         return $this->hasOne(CategorySeo::class);
     }
 
-    public function news(){
+    public function news()
+    {
         return $this->hasMany(News::class);
     }
 
     public function questions()
     {
         return $this->hasMany(Question::class);
+    }
+
+    /**
+     * All descendant category ids beneath this category (not including itself).
+     *
+     * @return array<int, int>
+     */
+    public function descendantIds(): array
+    {
+        $ids = [];
+        foreach ($this->childrenRecursive as $child) {
+            $ids[] = $child->id;
+            $ids = [...$ids, ...$child->descendantIds()];
+        }
+
+        return $ids;
+    }
+
+    /**
+     * This category's id plus every descendant id, resolved by slug.
+     * Used to scope a news listing to a category and all of its subcategories.
+     *
+     * @return array<int, int>
+     */
+    public static function idsForSlug(string $slug): array
+    {
+        $category = static::where('slug', $slug)->with('childrenRecursive')->first();
+
+        if (! $category) {
+            return [];
+        }
+
+        return [...$category->descendantIds(), $category->id];
     }
 }

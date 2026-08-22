@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 use App\Applications\Helpers\SeoHelper;
 use App\Applications\Queries\Api\CategoryAllChildrenIdsQuery;
 use App\Applications\Queries\Api\CategoryLayoutWiseNewsQuery;
@@ -30,6 +29,7 @@ use App\Services\Api\NewsReadService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
 
 class NewsController extends Controller
 {
@@ -40,8 +40,7 @@ class NewsController extends Controller
         NewsReadService $newsReadService,
         LinkedNewsQuery $linkedNewsQuery,
         NewsTimelinesQuery $newsTimelinesQuery,
-    )
-    {
+    ) {
         $news = Cache::rememberForever(CacheKey::newsDetails($slug), function () use ($slug) {
             return News::where('slug_key', $slug)
                 ->where('published', true)
@@ -62,7 +61,7 @@ class NewsController extends Controller
                 ])->firstOrFail();
         });
 
-//        $newsReadService->read($news);
+        $newsReadService->read($news);
 
         return [
             'news_details' => new NewsDetailsResource($news),
@@ -157,7 +156,6 @@ class NewsController extends Controller
             ];
         });
     }
-
 
     public function newsByCategory(
         string $slug,
@@ -255,8 +253,6 @@ class NewsController extends Controller
         );
     }
 
-
-
     public function newsByCategorySports(
         CategoryPageLayoutWiseNewsQuery $categoryPageLayoutWiseNewsQuery,
         CategoryLayoutWiseNewsQuery $categoryLayoutWiseNewsQuery,
@@ -282,12 +278,12 @@ class NewsController extends Controller
             ->when($category->parent_id, function ($query) use ($category) {
                 $query->where('category_id', $category->id);
             })
-            ->when(!$category->parent_id, function ($query) use ($category, $footballCategory, $cricketCategory) {
+            ->when(! $category->parent_id, function ($query) use ($category, $footballCategory, $cricketCategory) {
                 $children_category_ids = $category->children
                     ->pluck('id')
                     ->reject(fn ($id) => in_array($id, [
                         $footballCategory?->id,
-                        $cricketCategory?->id
+                        $cricketCategory?->id,
                     ]))
                     ->values();
 
@@ -325,11 +321,11 @@ class NewsController extends Controller
                 'selected' => $categoryPageLayoutWiseNewsQuery->handle($category->id, 'selected', 15),
 
                 'cricket' => NewsListResource::collection($cricketCategoryNews)->resolve(),
-//                'cricket' => $categoryLayoutWiseNewsQuery->handle(
-//                    'category-lead-news',
-//                    $cricketCategory->id,
-//                    9
-//                ),
+                //                'cricket' => $categoryLayoutWiseNewsQuery->handle(
+                //                    'category-lead-news',
+                //                    $cricketCategory->id,
+                //                    9
+                //                ),
 
                 'football' => NewsListResource::collection($footballCategoryNews)->resolve(),
 
@@ -345,7 +341,7 @@ class NewsController extends Controller
                         'next_cursor' => optional($news->nextCursor())->encode(),
                         'prev_cursor' => optional($news->previousCursor())->encode(),
                     ],
-                ]
+                ],
             ],
 
             'latest_news' => $latestNewsQuery->handle(),
@@ -355,7 +351,6 @@ class NewsController extends Controller
             'most_read_news' => $mostReadNewsQuery->handle($category->id, 5),
         ];
     }
-
 
     public function newsByCategoryWorldCup(
         CategoryPageLayoutWiseNewsQuery $categoryPageLayoutWiseNewsQuery,
@@ -396,9 +391,6 @@ class NewsController extends Controller
         ];
     }
 
-
-
-
     public function newsByCategoryPrint(
         MostReadNewsByCategoryQuery $mostReadNewsQuery,
         Request $request
@@ -411,8 +403,6 @@ class NewsController extends Controller
             ->where('visible', true)
             ->firstOrFail();
 
-
-
         $selectedDateInput = $request->query('date');
         try {
             $selectedDate = $selectedDateInput
@@ -422,13 +412,12 @@ class NewsController extends Controller
             $selectedDate = now()->format('Y-m-d');
         }
 
-
         $page_category = PageCategoryMap::with([
-            'category.news' => function ($query) use($selectedDate) {
-               $query->limit(5)->whereDate('date', $selectedDate);
+            'category.news' => function ($query) use ($selectedDate) {
+                $query->limit(5)->whereDate('date', $selectedDate);
             },
-            'category.news.category.parentRecursive'
-        ])->where('date', $selectedDate)->orderBy('position')->get()->map(function ($item){
+            'category.news.category.parentRecursive',
+        ])->where('date', $selectedDate)->orderBy('position')->get()->map(function ($item) {
 
             $category = $item->category;
             $news = $category->news;
@@ -437,12 +426,11 @@ class NewsController extends Controller
                 'category' => [
                     'name' => $category->name,
                     'slug' => $category->slug,
-                    'path' =>  '/print/'.$category->slug,
+                    'path' => '/print/'.$category->slug,
                 ],
-                'news' => NewsListResource::collection($news)->resolve()
+                'news' => NewsListResource::collection($news)->resolve(),
             ];
         });
-
 
         return [
             'category' => CategoryListResource::make($category)->resolve(),
@@ -452,27 +440,25 @@ class NewsController extends Controller
 
     }
 
-
     public function relatedNews(News $news)
     {
         $tag_ids = NewsTagMapping::where('news_id', $news->id)->pluck('tag_id');
 
-        $related_news = News::whereHas('tags', function ($query) use ($tag_ids, $news) {
+        $related_news = News::whereHas('tags', function ($query) use ($tag_ids) {
             $query->whereIn('tag_id', $tag_ids);
         })
-        ->where('id', '!=', $news->id)
-        ->with('category.parentRecursive')
-        ->orderByDesc('created_at')
-        ->limit(5)
-        ->get();
+            ->where('id', '!=', $news->id)
+            ->with('category.parentRecursive')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
 
         return $related_news;
     }
 
-
     public function latestNews()
     {
-        $news =  News::where('published', true)
+        $news = News::where('published', true)
             ->with('category.parentRecursive')
             ->orderByDesc('date')
             ->cursorPaginate(20);
@@ -481,23 +467,23 @@ class NewsController extends Controller
     }
 
     public function searchNews(Request $request)
-        {
-            $query = trim($request->query('query'));
+    {
+        $query = trim($request->query('query'));
 
-            if (!$query) {
-                return response()->json([]);
-            }
-
-            $news = News::search($query)
-                ->query(function ($builder) {
-                    $builder
-                        ->where('published', true)
-                        ->with('category.parentRecursive');
-                })
-                ->paginate(20);
-
-            return NewsListResource::collection($news);
+        if (! $query) {
+            return response()->json([]);
         }
+
+        $news = News::search($query)
+            ->query(function ($builder) {
+                $builder
+                    ->where('published', true)
+                    ->with('category.parentRecursive');
+            })
+            ->paginate(20);
+
+        return NewsListResource::collection($news);
+    }
 
     public function newsByTags($name, Request $request)
     {
