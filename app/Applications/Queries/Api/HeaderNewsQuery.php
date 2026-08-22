@@ -4,20 +4,21 @@ namespace App\Applications\Queries\Api;
 
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\News;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class HeaderNewsQuery
 {
     public function handle()
     {
-        return Cache::remember(CacheKey::header(), now()->addMinutes(5), function () {
+        return app(SharedCache::class)->flexible(CacheKey::header(), [CacheTags::header()], function () {
             return [
                 'news_1' => $this->getTagNews('স্পেশাল-১'),
                 'news_2' => $this->getTagNews('স্পেশাল-২'),
                 'news_3' => $this->getTagNews('স্পেশাল-৩'),
             ];
-        });
+        }, [300, 900]);
     }
 
     public function getTagNews($tagSlug)

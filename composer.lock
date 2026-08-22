@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "967b91214ebda0b5306edf1d19a6b765",
+    "content-hash": "698b711722ffb583eca41dbfaf93b053",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -3822,22 +3822,22 @@
         },
         {
             "name": "rakibmiah99/agamirsomoy-shared-cache",
-            "version": "v1.1.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/rakibmiah99/agamirsomoy-shared-cache.git",
-                "reference": "c6528bee1df75d8f42cbaebd5c6a435336806bd2"
-            },
+            "version": "2.0.0",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/rakibmiah99/agamirsomoy-shared-cache/zipball/c6528bee1df75d8f42cbaebd5c6a435336806bd2",
-                "reference": "c6528bee1df75d8f42cbaebd5c6a435336806bd2",
-                "shasum": ""
+                "type": "path",
+                "url": "../laravel-shared-cache",
+                "reference": "1dcb1ba0c79fe1388030add272414f4c9c4be631"
             },
             "require": {
                 "illuminate/cache": "^11.0|^12.0",
+                "illuminate/redis": "^11.0|^12.0",
                 "illuminate/support": "^11.0|^12.0",
                 "php": "^8.2"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0|^10.0",
+                "pestphp/pest": "^3.0|^4.0",
+                "predis/predis": "^2.0"
             },
             "type": "library",
             "extra": {
@@ -3852,16 +3852,19 @@
                     "Rakibmiah99\\AgamirsomoySharedCache\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Rakibmiah99\\AgamirsomoySharedCache\\Tests\\": "tests/"
+                }
+            },
             "license": [
                 "MIT"
             ],
-            "description": "Shared cache utilities for Laravel applications",
-            "support": {
-                "issues": "https://github.com/rakibmiah99/agamirsomoy-shared-cache/issues",
-                "source": "https://github.com/rakibmiah99/agamirsomoy-shared-cache/tree/v1.1.1"
-            },
-            "time": "2026-08-19T13:12:10+00:00"
+            "description": "Shared Redis cache + dependency-based invalidation utilities for the Agamirsomoy news platform Laravel applications",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "ralouphie/getallheaders",

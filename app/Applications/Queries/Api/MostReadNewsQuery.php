@@ -6,8 +6,9 @@ use App\Applications\Helpers\PortalDateHelper;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\News;
 use App\Models\NewsRead;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class MostReadNewsQuery
 {
@@ -15,7 +16,7 @@ class MostReadNewsQuery
     {
         $readDate = PortalDateHelper::todayDateString();
 
-        return Cache::remember(CacheKey::siteMostReadNews($readDate), now()->addMinutes(3), function () {
+        return app(SharedCache::class)->remember(CacheKey::siteMostReadNews($readDate), [CacheTags::mostRead()], function () {
             $mostReadIds = NewsRead::query()
                 ->select('news_reads.news_id')
                 ->join('news', 'news.id', '=', 'news_reads.news_id')
@@ -45,6 +46,6 @@ class MostReadNewsQuery
                 ->values();
 
             return NewsListResource::collection($news)->resolve();
-        });
+        }, 180);
     }
 }

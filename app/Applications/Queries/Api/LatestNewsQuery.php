@@ -5,8 +5,9 @@ namespace App\Applications\Queries\Api;
 use App\Applications\Helpers\PortalDateHelper;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\LatestNews;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class LatestNewsQuery
 {
@@ -14,7 +15,7 @@ class LatestNewsQuery
     {
         $today = PortalDateHelper::todayDateString();
 
-        return Cache::remember(CacheKey::siteLatestNews($today), now()->addMinutes(3), function () use ($offset, $limit) {
+        return app(SharedCache::class)->remember(CacheKey::siteLatestNews($today), [CacheTags::latestNews()], function () use ($offset, $limit) {
             $news = LatestNews::query()
                 ->select(['latest_news.id', 'latest_news.news_id', 'latest_news.position'])
                 ->join('news', 'latest_news.news_id', '=', 'news.id')
@@ -36,6 +37,6 @@ class LatestNewsQuery
                 ->pluck('news');
 
             return NewsListResource::collection($news)->resolve();
-        });
+        }, 180);
     }
 }

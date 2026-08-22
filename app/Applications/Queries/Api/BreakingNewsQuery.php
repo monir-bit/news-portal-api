@@ -4,8 +4,9 @@ namespace App\Applications\Queries\Api;
 
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\BreakingNews;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class BreakingNewsQuery
 {
@@ -14,7 +15,7 @@ class BreakingNewsQuery
      */
     public function handle(): array
     {
-        return Cache::remember(CacheKey::breakingNews(), now()->addMinutes(5), function () {
+        return app(SharedCache::class)->flexible(CacheKey::breakingNews(), [CacheTags::breakingNews()], function () {
             $rows = BreakingNews::query()
                 ->where('published', true)
                 ->with([
@@ -42,6 +43,6 @@ class BreakingNewsQuery
                     'url' => $url,
                 ];
             })->values()->all();
-        });
+        }, [300, 900]);
     }
 }

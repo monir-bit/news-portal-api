@@ -5,8 +5,9 @@ namespace App\Applications\Queries\Api;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\LayoutSection;
 use App\Models\LayoutSectionNews;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class ThankNewsQuery
 {
@@ -14,11 +15,9 @@ class ThankNewsQuery
     {
         $section_slug = 'thanks';
 
-        // Suffixed so this never collides with LayoutSectionWiseNewsQuery's cache
-        // entries for the same section slug (they share the same key prefix).
-        $cacheKey = CacheKey::homeSectionWiseNews($section_slug).':thanks-block';
+        $cacheKey = CacheKey::make('home-section-wise-news:thanks-block');
 
-        return Cache::flexible($cacheKey, [300, 900], function () use ($section_slug) {
+        return app(SharedCache::class)->flexible($cacheKey, [CacheTags::section($section_slug)], function () use ($section_slug) {
             $layout_section = LayoutSection::where('slug', $section_slug)->select('id')->first();
             if (! $layout_section) {
                 return [];
@@ -49,6 +48,6 @@ class ThankNewsQuery
                 'meta' => $section->news->thankNews?->toArray(),
                 'news' => NewsListResource::make($section->news)->resolve(),
             ];
-        });
+        }, [300, 900]);
     }
 }

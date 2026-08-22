@@ -28,8 +28,9 @@ use App\Services\Api\CategoryNewsPageService;
 use App\Services\Api\NewsReadService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class NewsController extends Controller
 {
@@ -41,7 +42,7 @@ class NewsController extends Controller
         LinkedNewsQuery $linkedNewsQuery,
         NewsTimelinesQuery $newsTimelinesQuery,
     ) {
-        $news = Cache::rememberForever(CacheKey::newsDetails($slug), function () use ($slug) {
+        $news = app(SharedCache::class)->rememberLong(CacheKey::newsDetails($slug), [CacheTags::newsBySlug($slug)], function () use ($slug) {
             return News::where('slug_key', $slug)
                 ->where('published', true)
                 ->with([
@@ -59,7 +60,7 @@ class NewsController extends Controller
                         $query->orderBy('position')->select('id', 'news_id', 'image_path', 'caption');
                     },
                 ])->firstOrFail();
-        });
+        }, 21600);
 
         $newsReadService->read($news);
 
@@ -121,7 +122,7 @@ class NewsController extends Controller
      */
     protected function cachedNewsByCategoryHome(string $slug): array
     {
-        return Cache::remember(CacheKey::newsByCategoryHome($slug), now()->addMinutes(5), function () use ($slug) {
+        return app(SharedCache::class)->remember(CacheKey::newsByCategoryHome($slug), [CacheTags::categoryBySlug($slug)], function () use ($slug) {
             $category = Category::with('children')->where('slug', $slug)->where('visible', true)->firstOrFail();
 
             $layoutSectionNewsIds = LayoutSectionNews::query()
@@ -154,7 +155,7 @@ class NewsController extends Controller
                 ],
                 'news' => NewsListResource::collection($news)->resolve(),
             ];
-        });
+        }, 300);
     }
 
     public function newsByCategory(
@@ -201,10 +202,11 @@ class NewsController extends Controller
             return $load(true);
         }
 
-        return Cache::remember(
+        return app(SharedCache::class)->remember(
             CacheKey::newsByCategory($slug, $divisionSlug, $districtSlug, $upazilaSlug, $date),
-            now()->addMinutes(5),
-            fn () => $load(false)
+            [CacheTags::categoryBySlug($slug)],
+            fn () => $load(false),
+            300
         );
     }
 
@@ -246,10 +248,11 @@ class NewsController extends Controller
             return $load(true);
         }
 
-        return Cache::remember(
+        return app(SharedCache::class)->remember(
             CacheKey::newsByPrintCategory($slug, $date),
-            now()->addMinutes(5),
-            fn () => $load(false)
+            [CacheTags::categoryBySlug($slug)],
+            fn () => $load(false),
+            300
         );
     }
 
@@ -517,34 +520,53 @@ class NewsController extends Controller
     {
         $author = Author::where('slug', $slug)->firstOrFail();
 
-        $newsQuery = News::query()
-            ->where('published', true)
-            ->whereHas('authors', function ($q) use ($author) {
-                $q->where('authors.id', $author->id);
-            })
-            ->with('category.parentRecursive')
-            ->orderByDesc('created_at')
-            ->cursorPaginate(20);
-
-        $response = NewsListResource::collection($newsQuery);
-
+        // Cursor pagination is keyed per-request (unique cursor per page), so only
+        // the initial (no-cursor) response is cacheable - caching every cursor
+        // value would never hit and would leak unbounded cache keys.
         if ($request->has('cursor')) {
-            return $response;
+            $newsQuery = News::query()
+                ->where('published', true)
+                ->whereHas('authors', function ($q) use ($author) {
+                    $q->where('authors.id', $author->id);
+                })
+                ->with('category.parentRecursive')
+                ->orderByDesc('created_at')
+                ->cursorPaginate(20);
+
+            return NewsListResource::collection($newsQuery);
         }
 
-        return [
-            'author' => [
-                'id' => $author->id,
-                'name' => $author->name,
-                'english_name' => $author->english_name,
-                'designation' => $author->designation,
-                'bio' => $author->bio,
-                'image' => $author->image,
-                'facebook' => $author->facebook,
-                'email' => $author->email,
-                'linkedin_url' => $author->linkedin_url,
-            ],
-            ...$response->response()->getData(true),
-        ];
+        return app(SharedCache::class)->remember(
+            CacheKey::newsByAuthor($author->id),
+            [CacheTags::author($author->id)],
+            function () use ($author) {
+                $newsQuery = News::query()
+                    ->where('published', true)
+                    ->whereHas('authors', function ($q) use ($author) {
+                        $q->where('authors.id', $author->id);
+                    })
+                    ->with('category.parentRecursive')
+                    ->orderByDesc('created_at')
+                    ->cursorPaginate(20);
+
+                $response = NewsListResource::collection($newsQuery);
+
+                return [
+                    'author' => [
+                        'id' => $author->id,
+                        'name' => $author->name,
+                        'english_name' => $author->english_name,
+                        'designation' => $author->designation,
+                        'bio' => $author->bio,
+                        'image' => $author->image,
+                        'facebook' => $author->facebook,
+                        'email' => $author->email,
+                        'linkedin_url' => $author->linkedin_url,
+                    ],
+                    ...$response->response()->getData(true),
+                ];
+            },
+            300
+        );
     }
 }

@@ -173,6 +173,12 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            // Fixed, identical prefix across news-portal-admin/news-portal-api/news-api.
+            // The global 'options.prefix' above defaults to a per-app slug of APP_NAME,
+            // which differs between these apps - that would silently put each app's
+            // cache in its own Redis keyspace and break cross-app cache sharing and
+            // dependency-tag invalidation entirely.
+            'prefix' => env('REDIS_CACHE_PREFIX', 'agamirsomoy-shared-cache:'),
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),

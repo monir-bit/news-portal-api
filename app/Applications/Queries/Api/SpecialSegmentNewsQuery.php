@@ -5,13 +5,17 @@ namespace App\Applications\Queries\Api;
 use App\Http\Resources\Api\NewsListResource;
 use App\Models\SpecialSegment;
 use App\Models\SpecialSegmentNews;
-use Illuminate\Support\Facades\Cache;
+use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
+use Rakibmiah99\AgamirsomoySharedCache\CacheTags;
+use Rakibmiah99\AgamirsomoySharedCache\SharedCache;
 
 class SpecialSegmentNewsQuery
 {
     public function handle($limit = 13)
     {
-        return Cache::flexible($this->cacheKey($limit), [300, 900], function () use ($limit) {
+        $cacheKey = CacheKey::make('special-segment-home', ['limit' => $limit]);
+
+        return app(SharedCache::class)->flexible($cacheKey, [CacheTags::section('special-segment')], function () use ($limit) {
             $segment = SpecialSegment::with('tag')->where('is_active', true)->first();
             $news = [];
 
@@ -43,14 +47,6 @@ class SpecialSegmentNewsQuery
                 'news' => NewsListResource::collection($news)->resolve(),
                 'tag' => $segment ? $segment->tag?->toArray() : null,
             ];
-        });
-    }
-
-    private function cacheKey($limit): string
-    {
-        $prefix = config('shared-cache.prefix', 'news');
-        $version = config('shared-cache.version', 'v1');
-
-        return "{$prefix}:{$version}:special-segment:home:{$limit}";
+        }, [300, 900]);
     }
 }
