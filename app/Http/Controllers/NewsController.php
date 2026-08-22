@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CategoryListResource;
 use App\Http\Resources\NewsDetailsResource;
 use App\Http\Resources\NewsListResource;
 use App\Models\Author;
@@ -9,8 +10,11 @@ use App\Models\Category;
 use App\Models\LayoutSectionNews;
 use App\Models\News;
 use App\Models\Tag;
+use App\Models\WorldCupMatch;
+use App\Services\News\CategoryAllChildrenIdsQuery;
 use App\Services\News\CategoryNewsPageService;
 use App\Services\News\LatestNewsQuery;
+use App\Services\News\LayoutSectionWiseNewsQuery;
 use App\Services\News\LinkedNewsQuery;
 use App\Services\News\MostReadNewsByCategoryQuery;
 use App\Services\News\MostReadNewsQuery;
@@ -18,6 +22,8 @@ use App\Services\News\NewsReadService;
 use App\Services\News\NewsTimelinesQuery;
 use App\Support\SeoHelper;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -219,6 +225,144 @@ class NewsController extends Controller
     }
 
     /**
+     * Sports hub: curated cricket/football rails plus the remaining sports news feed.
+     *
+     * @return array<string, mixed>|AnonymousResourceCollection
+     */
+    public function newsByCategorySports(
+        Request $request,
+        CategoryAllChildrenIdsQuery $categoryAllChildrenIdsQuery,
+        LatestNewsQuery $latestNewsQuery,
+        MostReadNewsQuery $mostReadNewsAllQuery,
+        MostReadNewsByCategoryQuery $mostReadNewsQuery,
+        SharedCache $sharedCache,
+    ): array|AnonymousResourceCollection {
+        $slug = 'sports';
+
+        $category = Category::with('children')
+            ->where('slug', $slug)
+            ->where('visible', true)
+            ->firstOrFail();
+
+        $footballCategory = Category::where('slug', 'football')->first();
+        $cricketCategory = Category::where('slug', 'cricket')->first();
+        $excludedCategoryIds = array_filter([$footballCategory?->id, $cricketCategory?->id]);
+
+        // Cursor pages are unique per request (unbounded key space) - only the
+        // default/first-page view (no cursor) is cache-eligible.
+        if ($request->input('cursor')) {
+            $others = $this->sportsOthersNewsQuery($category, $excludedCategoryIds)->cursorPaginate(12);
+
+            return NewsListResource::collection($others);
+        }
+
+        return $sharedCache->remember(
+            CacheKey::make('news-by-category-sports'),
+            [
+                CacheTags::categoryBySlug($slug),
+                CacheTags::categoryBySlug('football'),
+                CacheTags::categoryBySlug('cricket'),
+            ],
+            function () use (
+                $category,
+                $footballCategory,
+                $cricketCategory,
+                $excludedCategoryIds,
+                $categoryAllChildrenIdsQuery,
+                $latestNewsQuery,
+                $mostReadNewsAllQuery,
+                $mostReadNewsQuery,
+            ) {
+                $cricketNews = $cricketCategory
+                    ? $this->sportsSubCategoryNews($categoryAllChildrenIdsQuery->handle($cricketCategory->slug), 9)
+                    : new EloquentCollection;
+
+                $footballNews = $footballCategory
+                    ? $this->sportsSubCategoryNews($categoryAllChildrenIdsQuery->handle($footballCategory->slug), 9)
+                    : new EloquentCollection;
+
+                $others = $this->sportsOthersNewsQuery($category, $excludedCategoryIds)->cursorPaginate(12);
+
+                return [
+                    'category' => CategoryListResource::make($category)->resolve(),
+                    'parent' => CategoryListResource::make($category)->resolve(),
+                    'children' => CategoryListResource::collection($category->children)->resolve(),
+                    'news_list' => [
+                        'cricket' => NewsListResource::collection($cricketNews)->resolve(),
+                        'football' => NewsListResource::collection($footballNews)->resolve(),
+                        'others' => [
+                            'data' => NewsListResource::collection($others->items())->resolve(),
+                            'links' => [
+                                'next' => $others->nextPageUrl(),
+                                'prev' => $others->previousPageUrl(),
+                            ],
+                            'meta' => [
+                                'next_cursor' => optional($others->nextCursor())->encode(),
+                                'prev_cursor' => optional($others->previousCursor())->encode(),
+                            ],
+                        ],
+                    ],
+                    'latest_news' => $latestNewsQuery->handle(),
+                    'most_read_news_all' => $mostReadNewsAllQuery->handle(),
+                    'most_read_news' => $mostReadNewsQuery->handle($category->id),
+                ];
+            },
+            300,
+        );
+    }
+
+    /**
+     * World Cup landing page: category news feed, the curated "world-cup-lead"
+     * layout section, and the live/upcoming match schedule.
+     *
+     * @return array<string, mixed>|AnonymousResourceCollection
+     */
+    public function newsByCategoryWorldCup(
+        Request $request,
+        CategoryNewsPageService $categoryNewsPageService,
+        LayoutSectionWiseNewsQuery $layoutSectionWiseNewsQuery,
+        MostReadNewsByCategoryQuery $mostReadNewsQuery,
+        SharedCache $sharedCache,
+    ): array|AnonymousResourceCollection {
+        $slug = 'world-cup';
+
+        // Cursor pages are unique per request (unbounded key space) - only the
+        // default/first-page view (no cursor) is cache-eligible.
+        if ($request->input('cursor')) {
+            $categoryIds = $categoryNewsPageService->categoryIdsForSlug($slug);
+            $newsQuery = $categoryNewsPageService->baseNewsQuery($categoryIds);
+
+            [, $news] = $categoryNewsPageService->paginateAfterLeads($newsQuery);
+
+            return NewsListResource::collection($news);
+        }
+
+        $listing = $sharedCache->remember(
+            CacheKey::make('news-by-category-world-cup'),
+            [CacheTags::categoryBySlug($slug)],
+            function () use ($slug, $categoryNewsPageService, $layoutSectionWiseNewsQuery, $mostReadNewsQuery) {
+                $category = $categoryNewsPageService->resolveVisibleCategory($slug);
+                $categoryIds = $categoryNewsPageService->categoryIdsForSlug($slug);
+                $newsQuery = $categoryNewsPageService->baseNewsQuery($categoryIds);
+
+                [$leadNews, $news] = $categoryNewsPageService->paginateAfterLeads($newsQuery);
+
+                return [
+                    ...$categoryNewsPageService->buildFullListingPayload($category, $leadNews, $news, $mostReadNewsQuery),
+                    'world_cup_lead' => $layoutSectionWiseNewsQuery->handle('world-cup-lead', 10),
+                ];
+            },
+            300,
+        );
+
+        // Match schedule/scores are live data - always fetched fresh, never cached,
+        // matching WorldCupController's existing (uncached) convention for matches.
+        $listing['matches'] = $this->worldCupUpcomingMatches();
+
+        return $listing;
+    }
+
+    /**
      * @return array<string, mixed>|AnonymousResourceCollection
      */
     public function newsByPrintCategory(
@@ -381,5 +525,63 @@ class NewsController extends Controller
             },
             300,
         );
+    }
+
+    /**
+     * @param  array<int, int>  $categoryIds
+     */
+    private function sportsSubCategoryNews(array $categoryIds, int $limit): EloquentCollection
+    {
+        return News::query()
+            ->select(NewsListResource::NEWS_COLUMNS)
+            ->whereIn('category_id', $categoryIds)
+            ->where('published', true)
+            ->with([
+                'category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                'category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+            ])
+            ->orderByDesc('date')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * @param  array<int, int>  $excludedCategoryIds
+     */
+    private function sportsOthersNewsQuery(Category $category, array $excludedCategoryIds): Builder
+    {
+        $childrenCategoryIds = $category->children
+            ->pluck('id')
+            ->reject(fn ($id) => in_array($id, $excludedCategoryIds, true))
+            ->values();
+        $childrenCategoryIds[] = $category->id;
+
+        return News::query()
+            ->select(NewsListResource::NEWS_COLUMNS)
+            ->whereIn('category_id', $childrenCategoryIds)
+            ->where('published', true)
+            ->with([
+                'category' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+                'category.parentRecursive' => fn ($q) => $q->select(NewsListResource::CATEGORY_COLUMNS),
+            ])
+            ->orderByDesc('date')
+            ->orderByDesc('id');
+    }
+
+    private function worldCupUpcomingMatches(): EloquentCollection
+    {
+        return WorldCupMatch::where('season', '2026')
+            ->forTodayWindow()
+            ->with([
+                'homeTeam:id,name,flag_icon,group,fifa_code',
+                'awayTeam:id,name,flag_icon,group,fifa_code',
+                'commentaries' => function ($query) {
+                    $query->orderByDesc('created_at')->select('id', 'match_id', 'description', 'created_at')->limit(2);
+                },
+            ])
+            ->orderBy('match_date')
+            ->orderBy('start_time')
+            ->get()
+            ->makeHidden(['team_a', 'team_b', 'created_at', 'updated_at', 'season']);
     }
 }

@@ -32,6 +32,8 @@ Route::get('/news-details/{slug}', [NewsController::class, 'newsDetails']);
 Route::get('/news-by-category-home-batch', [NewsController::class, 'newsByCategoryHomeBatch']);
 Route::get('/news-by-category-home/{slug}', [NewsController::class, 'newsByCategoryHome']);
 Route::get('/news-by-category/{slug}', [NewsController::class, 'newsByCategory']);
+Route::get('/news-by-category-sports', [NewsController::class, 'newsByCategorySports']);
+Route::get('/news-by-category-world-cup', [NewsController::class, 'newsByCategoryWorldCup']);
 Route::get('/news-by-print-category/{slug}', [NewsController::class, 'newsByPrintCategory']);
 Route::get('/latest-news', [NewsController::class, 'latestNews']);
 Route::get('/search', [NewsController::class, 'searchNews'])->middleware('throttle:search');
@@ -79,5 +81,4 @@ Route::get('/world-cup-match-details/{id}', [WorldCupController::class, 'matchDe
 Route::get('/world-cup-all-matches', [WorldCupController::class, 'allMatches']);
 Route::get('/world-cup-today-match', [WorldCupController::class, 'todayMatch']);
 
-// World Cup trivia questions + quiz sets and the /news-by-category-world-cup landing
-// page are not yet implemented — pending Phase 3 completion.
+// World Cup trivia questions + quiz sets are not yet implemented — pending Phase 3 completion.
