@@ -16,14 +16,21 @@ use Rakibmiah99\AgamirsomoySharedCache\CacheKey;
  */
 trait InteractsWithNewsRails
 {
-    protected function cachedLatestNews(int $limit = 15): array
+    /**
+     * These cache entries are shared with v1 (same CacheKey). Whichever side last
+     * repopulated a given key decides its cached shape, and v1's
+     * MostReadNewsByCategoryQuery caches the raw resource collection (no ->resolve()),
+     * unlike its sibling queries — so the return type here must stay loose rather
+     * than `array`; both shapes JSON-encode identically once embedded in a response.
+     */
+    protected function cachedLatestNews(int $limit = 15): mixed
     {
         return Cache::remember(CacheKey::siteLatestNews(), now()->addMinutes(3), function () use ($limit) {
             return NewsListResource::collection(LatestNews::homepageList($limit))->resolve();
         });
     }
 
-    protected function cachedMostRead(?int $categoryId = null, int $limit = 15): array
+    protected function cachedMostRead(?int $categoryId = null, int $limit = 15): mixed
     {
         $key = $categoryId ? CacheKey::mostReadNewsByCategory($categoryId, $limit) : CacheKey::siteMostReadNews();
         $categoryIds = $categoryId ? [$categoryId] : null;
