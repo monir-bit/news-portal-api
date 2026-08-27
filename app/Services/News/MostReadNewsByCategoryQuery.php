@@ -41,7 +41,7 @@ class MostReadNewsByCategoryQuery
         $mostReadIds = NewsRead::query()
             ->whereHas('news', function ($nQ) {
                 $nQ->where('published', true)->whereBetween('date', [
-                    PortalDateHelper::subDay(),
+                    PortalDateHelper::yesterdayStart(),
                     PortalDateHelper::now(),
                 ]);
             })

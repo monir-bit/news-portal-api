@@ -8,6 +8,14 @@ class PortalDateHelper
 {
     public const TIMEZONE = 'Asia/Dhaka';
 
+
+    public static function yesterdayStart(): Carbon
+    {
+        return Carbon::now(self::TIMEZONE)
+            ->subDay()
+            ->startOfDay();
+    }
+
     public static function todayDateString(): string
     {
         return Carbon::now(self::TIMEZONE)->toDateString();

@@ -39,7 +39,7 @@ class MostReadNewsQuery
             ->join('news', 'news.id', '=', 'news_reads.news_id')
             ->where('news.published', true)
             ->whereBetween('news.date', [
-                PortalDateHelper::subDay(),
+                PortalDateHelper::yesterdayStart(),
                 PortalDateHelper::now(),
             ])
             ->groupBy('news_reads.news_id')
