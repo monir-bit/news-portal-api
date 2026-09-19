@@ -70,7 +70,7 @@ class News extends Model
      */
     public function toSearchableArray(): array
     {
-        $this->loadMissing(['details', 'tags']);
+        $this->loadMissing(['details', 'tags', 'category']);
 
         return [
             'id' => $this->id,
@@ -87,6 +87,7 @@ class News extends Model
             'date' => $this->date?->timestamp,
         ];
     }
+
 
     public function category(): BelongsTo
     {

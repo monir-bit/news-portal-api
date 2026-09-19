@@ -436,10 +436,10 @@ class NewsController extends Controller
         }
 
         $news = News::search($query)
+            ->where('published', true)
+            ->orderBy('date', 'desc')
             ->query(function ($builder) {
-                $builder
-                    ->where('published', true)
-                    ->with('category.parentRecursive');
+                $builder->with('category.parentRecursive');
             })
             ->paginate(20);
 

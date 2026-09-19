@@ -143,6 +143,16 @@ return [
             // 'users' => [
             //     'filterableAttributes'=> ['id', 'name', 'email'],
             // ],
+
+            'news' => [
+                'filterableAttributes' => [
+                    'published',
+                ],
+
+                'sortableAttributes' => [
+                    'date',
+                ],
+            ],
         ],
     ],
 
