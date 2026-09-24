@@ -42,7 +42,6 @@ class NewsController extends Controller
         string $slug,
         MostReadNewsQuery $mostReadNewsQuery,
         LatestNewsQuery $latestNewsQuery,
-        NewsReadService $newsReadService,
         LinkedNewsQuery $linkedNewsQuery,
         NewsTimelinesQuery $newsTimelinesQuery,
         SharedCache $sharedCache,
@@ -69,8 +68,6 @@ class NewsController extends Controller
                 ])->firstOrFail(),
             21600,
         );
-
-        $newsReadService->read($news);
 
         return [
             'news_details' => new NewsDetailsResource($news),
@@ -589,5 +586,17 @@ class NewsController extends Controller
             ->limit(5)
             ->get()
             ->makeHidden(['team_a', 'team_b', 'created_at', 'updated_at', 'season']);
+    }
+
+    public function newsRead(Request $request, NewsReadService $newsReadService)
+    {
+        $slug_key = $request->input('slug_key');
+        $visitorId = $request->input('visitor_id');
+        if ($visitorId && $slug_key) {
+            $news = News::where('slug_key', $slug_key)->first();
+            $newsReadService->read($news, $visitorId);
+            return null;
+        }
+        return null;
     }
 }

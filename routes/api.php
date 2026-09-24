@@ -28,6 +28,7 @@ Route::get('/divisions', [GeoLocationController::class, 'divisions']);
 Route::get('/districts/{divisionSlug}', [GeoLocationController::class, 'districts']);
 Route::get('/upazilas/{districtSlug}', [GeoLocationController::class, 'upazilas']);
 
+Route::post('/news-read', [NewsController::class, 'newsRead']);
 Route::get('/news-details/{slug}', [NewsController::class, 'newsDetails']);
 Route::get('/news-by-category-home-batch', [NewsController::class, 'newsByCategoryHomeBatch']);
 Route::get('/news-by-category-home/{slug}', [NewsController::class, 'newsByCategoryHome']);
