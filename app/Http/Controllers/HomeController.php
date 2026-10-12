@@ -6,6 +6,7 @@ use App\Enums\LayoutSectionEnum;
 use App\Services\News\LatestNewsQuery;
 use App\Services\News\LayoutSectionWiseNewsQuery;
 use App\Services\News\MostReadNewsQuery;
+use App\Services\News\PinLayoutSectionQuery;
 use App\Services\News\SpecialSegmentNewsQuery;
 
 class HomeController extends Controller
@@ -21,6 +22,7 @@ class HomeController extends Controller
         MostReadNewsQuery $mostReadNewsQuery,
         LatestNewsQuery $latestNewsQuery,
         SpecialSegmentNewsQuery $specialSegmentNewsQuery,
+        PinLayoutSectionQuery $pinLayoutSectionQuery
     ): array {
         $editorsPickSection = app()->getLocale() === 'en'
             ? LayoutSectionEnum::EditorsPick->value
@@ -40,6 +42,7 @@ class HomeController extends Controller
             'advice' => $this->layoutSectionWiseNewsQuery->handle(LayoutSectionEnum::Advice->value, 1),
             'fact_check' => $this->layoutSectionWiseNewsQuery->handle(LayoutSectionEnum::FactCheck->value, 1),
             'analysis' => $this->layoutSectionWiseNewsQuery->handle(LayoutSectionEnum::Analysis->value, 1),
+            'group_section_data' => $pinLayoutSectionQuery->get(),
         ];
     }
 }
