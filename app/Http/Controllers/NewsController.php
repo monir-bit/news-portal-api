@@ -218,7 +218,7 @@ class NewsController extends Controller
                     $mostReadNewsQuery,
                 );
             },
-            300,
+            60,
         );
     }
 
@@ -314,7 +314,7 @@ class NewsController extends Controller
                     'most_read_news' => $mostReadNewsQuery->handle($category->id, 5),
                 ];
             },
-            300,
+            60,
         );
     }
 
@@ -410,7 +410,7 @@ class NewsController extends Controller
                     $printEditionChildren,
                 );
             },
-            300,
+            60,
         );
     }
 
